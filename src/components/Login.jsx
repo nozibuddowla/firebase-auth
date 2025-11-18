@@ -9,14 +9,16 @@ import { useState } from "react";
 
 const googleProvider = new GoogleAuthProvider();
 const gitHubProvider = new GithubAuthProvider();
+
+// request email scope explicitly
+gitHubProvider.addScope("user:email");
+
 const Login = () => {
   const [user, setUser] = useState(null);
 
   const handleGoogleSignIn = () => {
-    console.log("google button clicked");
     signInWithPopup(auth, googleProvider)
       .then((result) => {
-        console.log(result.user);
         setUser(result.user);
       })
       .catch((error) => {
@@ -25,10 +27,20 @@ const Login = () => {
   };
 
   const handleGitHubSignIn = () => {
-    console.log("github button clicked");
     signInWithPopup(auth, gitHubProvider)
       .then((result) => {
-        console.log(result.user);
+        const firebaseUser = result.user;
+        if (!firebaseUser.email) {
+          if (firebaseUser.providerData) {
+            const gitProvider = firebaseUser.providerData.find(
+              (p) => p.providerId === "github.com"
+            );
+            if (gitProvider && gitProvider.email) {
+              console.log(`github email: ${gitProvider.email}`);
+              firebaseUser.email = gitProvider.email;
+            }
+          }
+        }
         setUser(result.user);
       })
       .catch((error) => console.log(error));
@@ -37,7 +49,6 @@ const Login = () => {
   const handleSignOut = () => {
     signOut(auth)
       .then(() => {
-        console.log("sign out complete");
         setUser(null);
       })
       .catch((error) => {
